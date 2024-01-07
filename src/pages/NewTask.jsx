@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useCookies } from "react-cookie";
 import axios from "axios";
-import { url } from "../const";
 import { Header } from "../components/Header";
+import { useNavigate } from "react-router-dom";
+import { url } from "../const";
 import "./newTask.scss";
-import { useHistory } from "react-router-dom";
 
 export const NewTask = () => {
   const [selectListId, setSelectListId] = useState();
@@ -13,10 +13,12 @@ export const NewTask = () => {
   const [detail, setDetail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [cookies] = useCookies();
-  const history = useHistory();
+  const navigate = useNavigate();
+
   const handleTitleChange = (e) => setTitle(e.target.value);
   const handleDetailChange = (e) => setDetail(e.target.value);
-  const handleSelectList = (id) => setSelectListId(id);
+  const handleSelectList = (e) => setSelectListId(e.target.value);
+
   const onCreateTask = () => {
     const data = {
       title: title,
@@ -31,7 +33,7 @@ export const NewTask = () => {
         },
       })
       .then(() => {
-        history.push("/");
+        navigate("/");
       })
       .catch((err) => {
         setErrorMessage(`タスクの作成に失敗しました。${err}`);
@@ -64,8 +66,9 @@ export const NewTask = () => {
           <label>リスト</label>
           <br />
           <select
-            onChange={(e) => handleSelectList(e.target.value)}
+            onChange={handleSelectList}
             className="new-task-select-list"
+            value={selectListId}
           >
             {lists.map((list, key) => (
               <option key={key} className="list-item" value={list.id}>
