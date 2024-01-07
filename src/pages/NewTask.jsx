@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useCookies } from "react-cookie";
 import axios from "axios";
-import { Header } from "../components/Header";
-import { useNavigate } from "react-router-dom";
 import { url } from "../const";
+import { Header } from "../components/Header";
 import "./newTask.scss";
+import { useNavigate } from "react-router-dom";
 
 export const NewTask = () => {
   const [selectListId, setSelectListId] = useState();
@@ -14,11 +14,9 @@ export const NewTask = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [cookies] = useCookies();
   const navigate = useNavigate();
-
   const handleTitleChange = (e) => setTitle(e.target.value);
   const handleDetailChange = (e) => setDetail(e.target.value);
-  const handleSelectList = (e) => setSelectListId(e.target.value);
-
+  const handleSelectList = (id) => setSelectListId(id);
   const onCreateTask = () => {
     const data = {
       title: title,
@@ -66,9 +64,8 @@ export const NewTask = () => {
           <label>リスト</label>
           <br />
           <select
-            onChange={handleSelectList}
+            onChange={(e) => handleSelectList(e.target.value)}
             className="new-task-select-list"
-            value={selectListId}
           >
             {lists.map((list, key) => (
               <option key={key} className="list-item" value={list.id}>

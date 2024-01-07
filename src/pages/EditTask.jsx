@@ -12,12 +12,13 @@ export const EditTask = () => {
   const [cookies] = useCookies();
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
-  const [isDone, setIsDone] = useState(false); // 初期値を追加
+  const [isDone, setIsDone] = useState();
   const [errorMessage, setErrorMessage] = useState("");
   const handleTitleChange = (e) => setTitle(e.target.value);
   const handleDetailChange = (e) => setDetail(e.target.value);
   const handleIsDoneChange = (e) => setIsDone(e.target.value === "done");
   const onUpdateTask = () => {
+    console.log(isDone);
     const data = {
       title: title,
       detail: detail,
@@ -30,7 +31,8 @@ export const EditTask = () => {
           authorization: `Bearer ${cookies.token}`,
         },
       })
-      .then(() => {
+      .then((res) => {
+        console.log(res.data);
         navigate("/");
       })
       .catch((err) => {
@@ -103,7 +105,7 @@ export const EditTask = () => {
               name="status"
               value="todo"
               onChange={handleIsDoneChange}
-              checked={!isDone} // 状態の反転に修正
+              checked={isDone === false ? "checked" : ""}
             />
             未完了
             <input
@@ -112,7 +114,7 @@ export const EditTask = () => {
               name="status"
               value="done"
               onChange={handleIsDoneChange}
-              checked={isDone} // 状態の反転に修正
+              checked={isDone === true ? "checked" : ""}
             />
             完了
           </div>
