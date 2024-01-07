@@ -1,4 +1,8 @@
 @charset "utf-8";
+$cr1: #555555;
+$cr2: #242f9b;
+$cr3: #ffffff;
+$cr4: #ff3333;
 
 .signin {
   width: 500px;
@@ -11,7 +15,7 @@
 
 .email-label,
 .password-label {
-  color: #555555;
+  color: $cr1;
 }
 
 .email-input,
@@ -23,13 +27,13 @@
 }
 
 .signin-button {
-  background-color: #242f9b;
-  color: #ffffff;
+  background-color: $cr2;
+  color: $cr3;
   width: 100px;
   height: 40px;
   border-radius: 5px;
 }
 
 .error-message {
-  color: #ff3333;
+  color: $cr4;
 }
