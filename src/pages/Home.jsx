@@ -122,27 +122,60 @@ export const Home = () => {
   );
 };
 
+const calculateRemainingTime = (limit) => {
+  if (!limit) {
+    return "期限未設定";
+  }
+
+  const now = new Date();
+  const limitDate = new Date(limit);
+  const timeDifference = limitDate - now;
+
+  if (timeDifference <= 0) {
+    return "期限切れ";
+  }
+
+  const minutes = Math.floor(timeDifference / (1000 * 60));
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days}日 ${hours % 24}時間 ${minutes % 60}分`;
+  } else if (hours > 0) {
+    return `${hours}時間 ${minutes % 60}分`;
+  } else {
+    return `${minutes}分`;
+  }
+};
+
 // 表示するタスク
 const Tasks = (props) => {
   const { tasks, selectListId, isDoneDisplay } = props;
   if (tasks === null) return <></>;
 
-  if (isDoneDisplay == "done") {
+  const getFormattedLimit = (limit) => {
+    if (limit) {
+      const FormattedLimit = new Date(limit).toLocaleString();
+      const remainingTime = calculateRemainingTime(limit);
+      return `期限: ${FormattedLimit} / 残り時間： ${remainingTime}`;
+    }
+    return "";
+  };
+
+  if (isDoneDisplay === "done") {
     return (
       <ul>
         {tasks
-          .filter((task) => {
-            return task.done === true;
-          })
+          .filter((task) => task.done === true)
           .map((task, key) => (
             <li key={key} className="task-item">
               <Link
                 to={`/lists/${selectListId}/tasks/${task.id}`}
                 className="task-item-link"
               >
-                {task.title}
+                `{task.title}
                 <br />
-                {task.done ? "完了" : "未完了"}
+                {task.done ? "完了" : "未完了"}{'　　'}{getFormattedLimit(task.limit)}`
               </Link>
             </li>
           ))}
@@ -153,9 +186,7 @@ const Tasks = (props) => {
   return (
     <ul>
       {tasks
-        .filter((task) => {
-          return task.done === false;
-        })
+        .filter((task) => task.done === false)
         .map((task, key) => (
           <li key={key} className="task-item">
             <Link
@@ -164,7 +195,7 @@ const Tasks = (props) => {
             >
               {task.title}
               <br />
-              {task.done ? "完了" : "未完了"}
+              {task.done ? "完了" : "未完了"}{'　　'}{getFormattedLimit(task.limit)}
             </Link>
           </li>
         ))}
