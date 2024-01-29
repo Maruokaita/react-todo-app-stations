@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import axios from "axios";
@@ -13,7 +13,15 @@ export const Home = () => {
   const [tasks, setTasks] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [cookies] = useCookies();
-  const handleIsDoneDisplayChange = (e) => setIsDoneDisplay(e.target.value);
+
+  // 新しいstateとキーボードイベントの処理を追加
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const handleIsDoneDisplayChange = (e) => {
+    setIsDoneDisplay(e.target.value);
+  };
+
+  // 初回のリスト取得と選択
   useEffect(() => {
     axios
       .get(`${url}/lists`, {
@@ -23,16 +31,22 @@ export const Home = () => {
       })
       .then((res) => {
         setLists(res.data);
+        // 初回のリストの取得後、最初のリストを選択
+        const initialListId = res.data[0]?.id;
+        if (initialListId) {
+          setSelectListId(initialListId);
+          setSelectedItem(`list-${initialListId}`);
+        }
       })
       .catch((err) => {
         setErrorMessage(`リストの取得に失敗しました。${err}`);
       });
-  }, []);
+  }, [cookies.token]);
 
+  // 選択されたリストに関連するタスクの取得
   useEffect(() => {
-    const listId = lists[0]?.id;
-    if (typeof listId !== "undefined") {
-      setSelectListId(listId);
+    const listId = lists.find((list) => list.id === selectListId)?.id;
+    if (listId) {
       axios
         .get(`${url}/lists/${listId}/tasks`, {
           headers: {
@@ -46,23 +60,52 @@ export const Home = () => {
           setErrorMessage(`タスクの取得に失敗しました。${err}`);
         });
     }
-  }, [lists]);
+  }, [lists, cookies.token, selectListId]);
 
+  // リストアイテムのクリック時に呼ばれる関数を追加
   const handleSelectList = (id) => {
     setSelectListId(id);
-    axios
-      .get(`${url}/lists/${id}/tasks`, {
-        headers: {
-          authorization: `Bearer ${cookies.token}`,
-        },
-      })
-      .then((res) => {
-        setTasks(res.data.tasks);
-      })
-      .catch((err) => {
-        setErrorMessage(`タスクの取得に失敗しました。${err}`);
-      });
+    setSelectedItem(`list-${id}`);
   };
+
+  // キーボードイベントの処理を追加
+  const handleKeyDown = useCallback(
+    (event) => {
+      const currentSelectedElement = document.getElementById(selectedItem);
+      let nextElement;
+
+      switch (event.key) {
+        case "ArrowLeft":
+          nextElement = currentSelectedElement?.previousElementSibling;
+          break;
+        case "ArrowRight":
+          nextElement = currentSelectedElement?.nextElementSibling;
+          break;
+        default:
+          return;
+      }
+
+      if (nextElement) {
+        currentSelectedElement?.setAttribute("aria-selected", "false");
+        nextElement.setAttribute("aria-selected", "true");
+        setSelectedItem(nextElement.id);
+        handleSelectList(nextElement.dataset.listId);
+      }
+
+      event.preventDefault();
+    },
+    [selectedItem, handleSelectList]
+  );
+
+  // キーボードイベントのリスナーを追加
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    // コンポーネントがアンマウントされる際にイベントリスナーを解除
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   return (
     <div>
       <Header />
@@ -82,25 +125,32 @@ export const Home = () => {
               </p>
             </div>
           </div>
-          <ul className="list-tab">
-            {lists.map((list, key) => {
-              const isActive = list.id === selectListId;
-              return (
-                <li
-                  key={key}
-                  className={`list-tab-item ${isActive ? "active" : ""}`}
-                  onClick={() => handleSelectList(list.id)}
-                >
-                  {list.title}
-                </li>
-              );
-            })}
+          {/* リストタブ */}
+          <ul className="list-tab" role="listbox">
+            {lists.map((list) => (
+              <li
+                key={list.id}
+                role="option"
+                tabIndex="0"
+                className={`list-tab-item ${
+                  selectedItem === `list-${list.id}` ? "active" : ""
+                }`}
+                onClick={() => handleSelectList(list.id)}
+                id={`list-${list.id}`}
+                data-list-id={list.id}
+                aria-selected={selectedItem === `list-${list.id}`}
+              >
+                {list.title}
+              </li>
+            ))}
           </ul>
+          {/* タスク一覧 */}
           <div className="tasks">
             <div className="tasks-header">
               <h2>タスク一覧</h2>
               <Link to="/task/new">タスク新規作成</Link>
             </div>
+            {/* タスク表示フィルター */}
             <div className="display-select-wrapper">
               <select
                 onChange={handleIsDoneDisplayChange}
@@ -110,6 +160,7 @@ export const Home = () => {
                 <option value="done">完了</option>
               </select>
             </div>
+            {/* タスクコンポーネント */}
             <Tasks
               tasks={tasks}
               selectListId={selectListId}
@@ -122,6 +173,7 @@ export const Home = () => {
   );
 };
 
+// 期限から残り時間を計算する関数
 const calculateRemainingTime = (limit) => {
   if (!limit) {
     return "期限未設定";
@@ -148,11 +200,12 @@ const calculateRemainingTime = (limit) => {
   }
 };
 
-// 表示するタスク
+// タスクを表示するコンポーネント
 const Tasks = (props) => {
   const { tasks, selectListId, isDoneDisplay } = props;
   if (tasks === null) return <></>;
 
+  // 期限をフォーマットして残り時間を取得する関数
   const getFormattedLimit = (limit) => {
     if (limit) {
       const FormattedLimit = new Date(limit).toLocaleString();
@@ -162,6 +215,7 @@ const Tasks = (props) => {
     return "";
   };
 
+  // 完了または未完了のタスクを表示
   if (isDoneDisplay === "done") {
     return (
       <ul>
@@ -183,6 +237,7 @@ const Tasks = (props) => {
     );
   }
 
+  // 未完了のタスクを表示
   return (
     <ul>
       {tasks
